@@ -238,7 +238,11 @@ jobs:
 
 
   # 4️⃣ DESTROY
- destroy:
+  destroy:
+    # needs: [apply]
+    # needs: [init, plan, apply]
+    # if: ${{ inputs.runDestroy && needs.apply.result == 'success' }}
+
     if: ${{ inputs.runDestroy }}
     needs: [setup]
     runs-on: self-hosted
@@ -246,17 +250,10 @@ jobs:
     defaults:
       run:
         working-directory: ${{ env.WORKDIR }}
-
+    
+    
     steps:
-      - name: Read dynamic dependency
-        id: read
-        run: |
-          echo "Destroy will depend on: ${{ needs.setup.outputs.destroy_needs }}"
-
-      - run: echo "🔥 Terraform destroy"
-
       - uses: actions/checkout@v4
-
       - uses: azure/login@v2
         with:
           client-id: ${{ secrets.CLI_ID }}
@@ -264,11 +261,7 @@ jobs:
           subscription-id: ${{ secrets.SUB_IS }}
 
       - name: Terraform Init
-        run: terraform init -input=false \
-          -backend-config="resource_group_name=${{ inputs.rgname }}" \
-          -backend-config="storage_account_name=${{ inputs.saname }}" \
-          -backend-config="container_name=${{ inputs.scname }}" \
-          -backend-config="key=${{ inputs.key }}"
-
+        run: terraform init -input=false -backend-config="resource_group_name=${{ inputs.rgname }}" -backend-config="storage_account_name=${{ inputs.saname }}" -backend-config="container_name=${{ inputs.scname }}" -backend-config="key=${{ inputs.key }}"
+      
       - name: Terraform Destroy
         run: terraform destroy -auto-approve -var-file="../${{ inputs.tfvars_file }}"

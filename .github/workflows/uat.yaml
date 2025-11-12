@@ -22,9 +22,9 @@ jobs:
     with:
       environment: uat
       tfvars_file: environments/uat.tfvars
-      rgname: ritkargv
-      saname: ritkasav
-      scname: ritkascv
+      rgname: ritkargs
+      saname: ritkasas
+      scname: ritkascs
       key: uat.tfstate
 
       # 👇 Simple clear logic

@@ -35,9 +35,9 @@ jobs:
     with:
       environment:  prod
       tfvars_file:  environments/prod.tfvars
-      rgname:       ritkargv
-      saname:       ritkasav
-      scname:       ritkascv
+      rgname:       ritkargs
+      saname:       ritkasas
+      scname:       ritkascs
       key:          prod.tfstate
 
       # Run toggles

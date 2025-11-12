@@ -108,9 +108,9 @@ jobs:
       # - name: Terraform Init (Backend)
       #   run: |
       #     terraform init -input=false \
-      #       -backend-config="resource_group_name=ritkargv" \
-      #       -backend-config="storage_account_name=ritkasav" \
-      #       -backend-config="container_name=ritkascv" \
+      #       -backend-config="resource_group_name=ritkargs" \
+      #       -backend-config="storage_account_name=ritkasas" \
+      #       -backend-config="container_name=ritkascs" \
       #       -backend-config="key=prod.tfstate"
 
       - name: Terraform Init

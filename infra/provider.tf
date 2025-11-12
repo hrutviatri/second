@@ -14,9 +14,9 @@ provider "azurerm" {
 
 terraform {
   backend "azurerm" {
-    # resource_group_name  = "ritkargv"
-    # storage_account_name = "ritkasav"
-    # container_name       = "ritkascv"
+    # resource_group_name  = "ritkargs"
+    # storage_account_name = "ritkasas"
+    # container_name       = "ritkascs"
     # key                  = "first.tfstate"
   }
 }

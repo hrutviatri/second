@@ -22,9 +22,9 @@ jobs:
     with:
       environment: dev
       tfvars_file: environments/dev.tfvars
-      rgname: ritkargv
-      saname: ritkasav
-      scname: ritkascv
+      rgname: ritkargs
+      saname: ritkasas
+      scname: ritkascs
       key: dev.tfstate
 
       # 👇 Simple clear logic

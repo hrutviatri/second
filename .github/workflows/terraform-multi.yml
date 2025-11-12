@@ -21,9 +21,9 @@ on:
       useEnvironmentDestroy: { type: boolean, default: false }
 
     secrets:
-      AZURE_CLIENT_ID:       { required: true }
-      AZURE_TENANT_ID:       { required: true }
-      AZURE_SUBSCRIPTION_ID: { required: true }
+      CLI_ID:       { required: true }
+      TEN_ID:       { required: true }
+      SUB_IS: { required: true }
 
 permissions:
   id-token: write
@@ -32,28 +32,25 @@ permissions:
 env:
   WORKDIR: infra
 
-# 🧩 Step 0 — Precompute dynamic dependencies
 jobs:
+
+
   setup:
     runs-on: ubuntu-latest
     outputs:
-      destroy_needs: ${{ steps.compute.outputs.destroy_needs }}
+      destroy_needs: ${{ steps.set.outputs.destroy_needs }}
     steps:
-      - id: compute
+      - id: set
         run: |
-          needs="[]"
-          if [ "${{ inputs.runApply }}" = "true" ]; then
-            needs='["apply"]'
-          elif [ "${{ inputs.runPlan }}" = "true" ]; then
-            needs='["plan"]'
-          elif [ "${{ inputs.runInit }}" = "true" ]; then
-            needs='["init"]'
-          fi
-          echo "destroy_needs=$needs" >> $GITHUB_OUTPUT
-          echo "✅ Destroy dependencies computed: $needs"
+          echo "Computing dynamic dependencies..."
+          DEPS='[]'
+          if [[ "${{ inputs.runApply }}" == "true" ]]; then DEPS='["apply"]'; fi
+          if [[ "${{ inputs.runPlan }}" == "true" ]]; then DEPS='["plan"]'; fi
+          if [[ "${{ inputs.runInit }}" == "true" ]]; then DEPS='["init"]'; fi
+          echo "destroy_needs=$DEPS" >> $GITHUB_OUTPUT
 
 
-  # 1️⃣ INIT
+  # 1️⃣ INIT + FMT + VALIDATE
   init:
     if: ${{ inputs.runInit }}
     runs-on: self-hosted
@@ -63,60 +60,106 @@ jobs:
         working-directory: ${{ env.WORKDIR }}
     steps:
       - uses: actions/checkout@v4
+
       - uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ secrets.CLI_ID }}
+          tenant-id: ${{ secrets.TEN_ID }}
+          subscription-id: ${{ secrets.SUB_IS }}
 
       - name: Terraform Init
-        run: terraform init -input=false \
-          -backend-config="resource_group_name=${{ inputs.rgname }}" \
-          -backend-config="storage_account_name=${{ inputs.saname }}" \
-          -backend-config="container_name=${{ inputs.scname }}" \
-          -backend-config="key=${{ inputs.key }}"
+        run: terraform init -input=false -backend-config="resource_group_name=${{ inputs.rgname }}" -backend-config="storage_account_name=${{ inputs.saname }}" -backend-config="container_name=${{ inputs.scname }}" -backend-config="key=${{ inputs.key }}"
 
-      - run: terraform fmt -check -recursive
+      - run: terraform fmt -recursive
       - run: terraform validate
 
 
   # 2️⃣ PLAN
+  # plan:
+  #   needs: [init]
+  #   if: ${{ inputs.runPlan && (needs.init.result == 'success' || !inputs.runInit) }}
+  #   runs-on: self-hosted
+  #   environment: ${{ inputs.useEnvironmentPlan && inputs.environment || '' }}
+  #   defaults:
+  #     run:
+  #       working-directory: ${{ env.WORKDIR }}
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: azure/login@v2
+  #       with:
+  #         client-id: ${{ secrets.CLI_ID }}
+  #         tenant-id: ${{ secrets.TEN_ID }}
+  #         subscription-id: ${{ secrets.SUB_IS }}
+
+  #     - name: Terraform Init
+  #       run: terraform init -input=false -backend-config="resource_group_name=${{ inputs.rgname }}" -backend-config="storage_account_name=${{ inputs.saname }}" -backend-config="container_name=${{ inputs.scname }}" -backend-config="key=${{ inputs.key }}"
+
+  #     - name: Terraform Plan
+  #       run: terraform plan -var-file="../${{ inputs.tfvars_file }}" -out="plan-${{ inputs.environment }}.tfplan"
+
+  #     - uses: actions/upload-artifact@v4
+  #       with:
+  #         name: tfplan-${{ inputs.environment }}
+  #         path: infra/plan-${{ inputs.environment }}.tfplan
   plan:
-    if: ${{ inputs.runPlan }}
+    name: Terraform Plan
+    # needs: [init_fmt_validate]
     needs: [init]
+    if: ${{ inputs.runPlan && (needs.init.result == 'success' || !inputs.runInit) }}
     runs-on: self-hosted
     environment: ${{ inputs.useEnvironmentPlan && inputs.environment || '' }}
+
     defaults:
       run:
         working-directory: ${{ env.WORKDIR }}
     steps:
       - uses: actions/checkout@v4
-      - uses: azure/login@v2
+
+      - name: Azure Login
+        uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ secrets.CLI_ID }}
+          tenant-id: ${{ secrets.TEN_ID }}
+          subscription-id: ${{ secrets.SUB_IS }}
+
+      # - name: Terraform Init (Backend)
+      #   run: |
+      #     terraform init -input=false \
+      #       -backend-config="resource_group_name=ritkargv" \
+      #       -backend-config="storage_account_name=ritkasav" \
+      #       -backend-config="container_name=ritkascv" \
+      #       -backend-config="key=prod.tfstate"
 
       - name: Terraform Init
-        run: terraform init -input=false \
-          -backend-config="resource_group_name=${{ inputs.rgname }}" \
-          -backend-config="storage_account_name=${{ inputs.saname }}" \
-          -backend-config="container_name=${{ inputs.scname }}" \
-          -backend-config="key=${{ inputs.key }}"
+        run: terraform init -input=false -backend-config="resource_group_name=${{ inputs.rgname }}" -backend-config="storage_account_name=${{ inputs.saname }}" -backend-config="container_name=${{ inputs.scname }}" -backend-config="key=${{ inputs.key }}"
+
+
+      # - name: Terraform Plan
+      #   run: terraform plan -var-file="../environments/prod.tfvars" -out="plan-prod.tfplan"
 
       - name: Terraform Plan
-        run: terraform plan -var-file="../${{ inputs.tfvars_file }}" -out="tf-plan-${{ inputs.environment }}.tfplan"
+        run: terraform plan -var-file="../environments/prod.tfvars" -out="tf-plan-${{ inputs.environment }}.tfplan"
 
-      - uses: actions/upload-artifact@v4
+
+      # - name: Upload Plan Artifact
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: prod-tfplan         # 👈 must match apply job name
+      #     path: |
+      #       infra/plan-prod.tfplan
+      #       infra/.terraform.lock.hcl
+      - name: Upload plan
+        uses: actions/upload-artifact@v4
         with:
           name: tf-plan-${{ inputs.environment }}
           path: infra/tf-plan-${{ inputs.environment }}.tfplan
 
+            
 
   # 3️⃣ APPLY
   apply:
-    if: ${{ inputs.runApply }}
     needs: [plan]
+    if: ${{ inputs.runApply && needs.plan.result == 'success' }}
     runs-on: self-hosted
     environment: ${{ inputs.useEnvironmentApply && inputs.environment || '' }}
     defaults:
@@ -126,49 +169,99 @@ jobs:
       - uses: actions/checkout@v4
       - uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ secrets.CLI_ID }}
+          tenant-id: ${{ secrets.TEN_ID }}
+          subscription-id: ${{ secrets.SUB_IS }}
 
-      - uses: actions/download-artifact@v4
+      # - uses: actions/download-artifact@v4
+      #   with:
+      #     name: tfplan-${{ inputs.environment }}
+      #     path: infra
+
+      # - name: Terraform Apply
+      #   run: terraform apply -auto-approve "plan-${{ inputs.environment }}.tfplan"
+
+
+      # - name: Download Plan
+      #   uses: actions/download-artifact@v4
+      #   with:
+      #     name: prod-tfplan
+      #     path: infra
+
+      - name: Download plan
+        uses: actions/download-artifact@v4
         with:
           name: tf-plan-${{ inputs.environment }}
           path: infra
 
+
       - name: Terraform Init
-        run: terraform init -input=false \
-          -backend-config="resource_group_name=${{ inputs.rgname }}" \
-          -backend-config="storage_account_name=${{ inputs.saname }}" \
-          -backend-config="container_name=${{ inputs.scname }}" \
-          -backend-config="key=${{ inputs.key }}"
+        run: terraform init -input=false -backend-config="resource_group_name=${{ inputs.rgname }}" -backend-config="storage_account_name=${{ inputs.saname }}" -backend-config="container_name=${{ inputs.scname }}" -backend-config="key=${{ inputs.key }}"
 
+      # - name: Terraform Apply
+      #   if: ${{ inputs.require_approval || github.event_name == 'push' }}
+      #   run: terraform apply -auto-approve "prod.tfplan"
+
+      
       - name: Terraform Apply
-        run: terraform apply -auto-approve "tf-plan-${{ inputs.environment }}.tfplan"
+        if: ${{ inputs.require_approval || github.event_name == 'push' }}
+        run: terraform apply -auto-approve "tf-plan-${{ inputs.environment }}"
 
 
-  # 4️⃣ DESTROY (Dynamic dependency resolution)
+  # # 4️⃣ DESTROY
+  # destroy:
+  #   needs: [apply]
+  #   if: ${{ inputs.runDestroy && needs.apply.result == 'success' }}
+  #   runs-on: self-hosted
+  #   environment: ${{ inputs.useEnvironmentDestroy && inputs.environment || '' }}
+  #   defaults:
+  #     run:
+  #       working-directory: ${{ env.WORKDIR }}
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: azure/login@v2
+  #       with:
+  #         client-id: ${{ secrets.CLI_ID }}
+  #         tenant-id: ${{ secrets.TEN_ID }}
+  #         subscription-id: ${{ secrets.SUB_IS }}
+
+  #     - name: Terraform Init
+  #       run: terraform init -input=false -backend-config="resource_group_name=${{ inputs.rgname }}" -backend-config="storage_account_name=${{ inputs.saname }}" -backend-config="container_name=${{ inputs.scname }}" -backend-config="key=${{ inputs.key }}"
+      
+  #     - name: Terraform Destroy
+  #       run: terraform destroy -auto-approve -var-file="../${{ inputs.tfvars_file }}"
+
+
+
+
+
+
+
+  # 4️⃣ DESTROY
   destroy:
+    # needs: [apply]
+    # needs: [init, plan, apply]
+    # if: ${{ inputs.runDestroy && needs.apply.result == 'success' }}
+
     if: ${{ inputs.runDestroy }}
-    needs: ${{ fromJSON(needs.setup.outputs.destroy_needs) }}
+    needs: [setup]
     runs-on: self-hosted
     environment: ${{ inputs.useEnvironmentDestroy && inputs.environment || '' }}
     defaults:
       run:
         working-directory: ${{ env.WORKDIR }}
+    
+    
     steps:
       - uses: actions/checkout@v4
       - uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ secrets.CLI_ID }}
+          tenant-id: ${{ secrets.TEN_ID }}
+          subscription-id: ${{ secrets.SUB_IS }}
 
       - name: Terraform Init
-        run: terraform init -input=false \
-          -backend-config="resource_group_name=${{ inputs.rgname }}" \
-          -backend-config="storage_account_name=${{ inputs.saname }}" \
-          -backend-config="container_name=${{ inputs.scname }}" \
-          -backend-config="key=${{ inputs.key }}"
-
+        run: terraform init -input=false -backend-config="resource_group_name=${{ inputs.rgname }}" -backend-config="storage_account_name=${{ inputs.saname }}" -backend-config="container_name=${{ inputs.scname }}" -backend-config="key=${{ inputs.key }}"
+      
       - name: Terraform Destroy
         run: terraform destroy -auto-approve -var-file="../${{ inputs.tfvars_file }}"

@@ -253,6 +253,15 @@ jobs:
     
     
     steps:
+
+      - name: Read dynamic dependency
+        id: read
+        run: |
+          echo "Destroy will depend on: ${{ needs.setup.outputs.destroy_needs }}"
+      
+      - run: echo "🔥 Terraform destroy"
+
+
       - uses: actions/checkout@v4
       - uses: azure/login@v2
         with:
@@ -265,3 +274,39 @@ jobs:
       
       - name: Terraform Destroy
         run: terraform destroy -auto-approve -var-file="../${{ inputs.tfvars_file }}"
+
+
+
+
+          orchestrate:
+    name: Terraform Dynamic Runner
+    runs-on: self-hosted
+    environment: ${{ inputs.environment }}
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.CLI_ID }}
+          tenant-id: ${{ secrets.TEN_ID }}
+          subscription-id: ${{ secrets.SUB_IS }}
+
+      - name: Run Terraform Orchestrator Script
+        run: bash .github/scripts/run-terraform.sh
+        env:
+          WORKDIR: infra
+          TFVARS_FILE: "../${{ inputs.tfvars_file }}"
+          RGNAME: ${{ inputs.rgname }}
+          SANAME: ${{ inputs.saname }}
+          SCNAME: ${{ inputs.scname }}
+          KEY: ${{ inputs.key }}
+
+          RUN_INIT: ${{ inputs.runInit }}
+          RUN_PLAN: ${{ inputs.runPlan }}
+          RUN_APPLY: ${{ inputs.runApply }}
+          RUN_DESTROY: ${{ inputs.runDestroy }}

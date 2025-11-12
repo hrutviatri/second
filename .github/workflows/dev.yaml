@@ -22,9 +22,9 @@ jobs:
     with:
       environment: dev
       tfvars_file: environments/dev.tfvars
-      rgname: ritkargs
-      saname: ritkasas
-      scname: ritkascs
+      rgname: ritkargv
+      saname: ritkasav
+      scname: ritkascv
       key: dev.tfstate
 
       # 👇 Simple clear logic
@@ -38,6 +38,6 @@ jobs:
       runDestroy:  ${{ github.event_name != 'push' && inputs.do_destroy }}
 
     secrets:
-      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      CLI_ID: ${{ secrets.CLI_ID }}
+      TEN_ID: ${{ secrets.TEN_ID }}
+      SUB_IS: ${{ secrets.SUB_IS }}

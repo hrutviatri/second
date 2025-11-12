@@ -21,9 +21,9 @@ on:
       useEnvironmentDestroy: { type: boolean, default: false }
 
     secrets:
-      AZURE_CLIENT_ID:       { required: true }
-      AZURE_TENANT_ID:       { required: true }
-      AZURE_SUBSCRIPTION_ID: { required: true }
+      CLI_ID:       { required: true }
+      TEN_ID:       { required: true }
+      SUB_IS: { required: true }
 
 permissions:
   id-token: write
@@ -46,9 +46,9 @@ jobs:
 
       - uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ secrets.CLI_ID }}
+          tenant-id: ${{ secrets.TEN_ID }}
+          subscription-id: ${{ secrets.SUB_IS }}
 
       - name: Terraform Init
         run: terraform init -input=false -backend-config="resource_group_name=${{ inputs.rgname }}" -backend-config="storage_account_name=${{ inputs.saname }}" -backend-config="container_name=${{ inputs.scname }}" -backend-config="key=${{ inputs.key }}"
@@ -70,9 +70,9 @@ jobs:
   #     - uses: actions/checkout@v4
   #     - uses: azure/login@v2
   #       with:
-  #         client-id: ${{ secrets.AZURE_CLIENT_ID }}
-  #         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-  #         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  #         client-id: ${{ secrets.CLI_ID }}
+  #         tenant-id: ${{ secrets.TEN_ID }}
+  #         subscription-id: ${{ secrets.SUB_IS }}
 
   #     - name: Terraform Init
   #       run: terraform init -input=false -backend-config="resource_group_name=${{ inputs.rgname }}" -backend-config="storage_account_name=${{ inputs.saname }}" -backend-config="container_name=${{ inputs.scname }}" -backend-config="key=${{ inputs.key }}"
@@ -101,16 +101,16 @@ jobs:
       - name: Azure Login
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ secrets.CLI_ID }}
+          tenant-id: ${{ secrets.TEN_ID }}
+          subscription-id: ${{ secrets.SUB_IS }}
 
       # - name: Terraform Init (Backend)
       #   run: |
       #     terraform init -input=false \
-      #       -backend-config="resource_group_name=ritkargs" \
-      #       -backend-config="storage_account_name=ritkasas" \
-      #       -backend-config="container_name=ritkascs" \
+      #       -backend-config="resource_group_name=ritkargv" \
+      #       -backend-config="storage_account_name=ritkasav" \
+      #       -backend-config="container_name=ritkascv" \
       #       -backend-config="key=prod.tfstate"
 
       - name: Terraform Init
@@ -152,9 +152,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ secrets.CLI_ID }}
+          tenant-id: ${{ secrets.TEN_ID }}
+          subscription-id: ${{ secrets.SUB_IS }}
 
       # - uses: actions/download-artifact@v4
       #   with:
@@ -204,9 +204,9 @@ jobs:
   #     - uses: actions/checkout@v4
   #     - uses: azure/login@v2
   #       with:
-  #         client-id: ${{ secrets.AZURE_CLIENT_ID }}
-  #         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-  #         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  #         client-id: ${{ secrets.CLI_ID }}
+  #         tenant-id: ${{ secrets.TEN_ID }}
+  #         subscription-id: ${{ secrets.SUB_IS }}
 
   #     - name: Terraform Init
   #       run: terraform init -input=false -backend-config="resource_group_name=${{ inputs.rgname }}" -backend-config="storage_account_name=${{ inputs.saname }}" -backend-config="container_name=${{ inputs.scname }}" -backend-config="key=${{ inputs.key }}"
@@ -238,9 +238,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ secrets.CLI_ID }}
+          tenant-id: ${{ secrets.TEN_ID }}
+          subscription-id: ${{ secrets.SUB_IS }}
 
       - name: Terraform Init
         run: terraform init -input=false -backend-config="resource_group_name=${{ inputs.rgname }}" -backend-config="storage_account_name=${{ inputs.saname }}" -backend-config="container_name=${{ inputs.scname }}" -backend-config="key=${{ inputs.key }}"

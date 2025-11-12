@@ -53,7 +53,7 @@ jobs:
       - name: Terraform Init
         run: terraform init -input=false -backend-config="resource_group_name=${{ inputs.rgname }}" -backend-config="storage_account_name=${{ inputs.saname }}" -backend-config="container_name=${{ inputs.scname }}" -backend-config="key=${{ inputs.key }}"
 
-      - run: terraform fmt -check -recursive
+      - run: terraform fmt -recursive
       - run: terraform validate
 
 

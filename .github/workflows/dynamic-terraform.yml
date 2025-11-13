@@ -1,0 +1,98 @@
+name: 🧩 Terraform Dynamic Chain
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_init:
+        type: boolean
+        default: false
+        description: "Run terraform init?"
+      run_plan:
+        type: boolean
+        default: false
+        description: "Run terraform plan?"
+      run_apply:
+        type: boolean
+        default: false
+        description: "Run terraform apply?"
+      run_destroy:
+        type: boolean
+        default: false
+        description: "Run terraform destroy?"
+
+env:
+  WORKDIR: infra
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      run_init: ${{ inputs.run_init }}
+      run_plan: ${{ inputs.run_plan }}
+      run_apply: ${{ inputs.run_apply }}
+      run_destroy: ${{ inputs.run_destroy }}
+    steps:
+      - run: echo "Setup done ✅"
+
+  # INIT
+  init:
+    if: ${{ needs.setup.outputs.run_init == 'true' }}
+    needs: [setup]
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "🏗️ Running terraform init"
+
+  # PLAN
+  plan:
+    needs: ${{ fromJson('["setup"]') }}
+    if: ${{ needs.setup.outputs.run_plan == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set dependency dynamically
+        id: dyn
+        run: |
+          echo "INIT_SELECTED=${{ needs.setup.outputs.run_init }}" 
+          if [ "${{ needs.setup.outputs.run_init }}" = "true" ]; then
+            echo "needs_init=true" >> $GITHUB_OUTPUT
+          else
+            echo "needs_init=false" >> $GITHUB_OUTPUT
+          fi
+      - name: Run Plan
+        run: echo "📘 Terraform Plan running..."
+
+  # APPLY
+  apply:
+    needs: ${{ fromJson('["setup"]') }}
+    if: ${{ needs.setup.outputs.run_apply == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for dependencies
+        run: |
+          if [ "${{ needs.setup.outputs.run_plan }}" = "true" ]; then
+            echo "⏳ Waiting for PLAN to finish..."
+          elif [ "${{ needs.setup.outputs.run_init }}" = "true" ]; then
+            echo "⏳ Waiting for INIT to finish..."
+          else
+            echo "🚀 No dependency, running directly."
+          fi
+      - run: echo "✅ Terraform Apply executed"
+
+  # DESTROY
+  destroy:
+    needs: ${{ fromJson('["setup"]') }}
+    if: ${{ needs.setup.outputs.run_destroy == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Determine order
+        run: |
+          echo "🧹 Destroy job started"
+          if [ "${{ needs.setup.outputs.run_apply }}" = "true" ]; then
+            echo "⛓ Depends on Apply"
+          elif [ "${{ needs.setup.outputs.run_plan }}" = "true" ]; then
+            echo "⛓ Depends on Plan"
+          elif [ "${{ needs.setup.outputs.run_init }}" = "true" ]; then
+            echo "⛓ Depends on Init"
+          else
+            echo "🧹 Running Destroy alone"
+          fi
+      - run: echo "💣 Terraform Destroy completed"

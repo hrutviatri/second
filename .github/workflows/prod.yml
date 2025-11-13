@@ -1,0 +1,77 @@
+name: prod
+
+on:
+  workflow_dispatch:
+    inputs:
+      do_init:
+        type: boolean
+        default: false
+        description: "Run Terraform Init?"
+      do_plan:
+        type: boolean
+        default: false
+        description: "Run Terraform Plan?"
+      do_apply:
+        type: boolean
+        default: false
+        description: "Run Terraform Apply?"
+      do_destroy:
+        type: boolean
+        default: false
+        description: "Run Terraform Destroy?"
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  init:
+    if: ${{ inputs.do_init }}
+    uses: ./.github/workflows/terraform-init.yml
+    with:
+      environment: prod
+      tfvars_file: environments/prod.tfvars
+      rgname: ritkargv
+      saname: ritkasav
+      scname: ritkascv
+      key: prod.tfstate
+    secrets: inherit
+
+  plan:
+    if: ${{ inputs.do_plan }}
+    needs: ${{ inputs.do_init && 'init' || null }}
+    uses: ./.github/workflows/terraform-plan.yml
+    with:
+      environment: prod
+      tfvars_file: environments/prod.tfvars
+      rgname: ritkargv
+      saname: ritkasav
+      scname: ritkascv
+      key: prod.tfstate
+    secrets: inherit
+
+  apply:
+    if: ${{ inputs.do_apply }}
+    needs: ${{ inputs.do_plan && 'plan' || inputs.do_init && 'init' || null }}
+    uses: ./.github/workflows/terraform-apply.yml
+    with:
+      environment: prod
+      tfvars_file: environments/prod.tfvars
+      rgname: ritkargv
+      saname: ritkasav
+      scname: ritkascv
+      key: prod.tfstate
+    secrets: inherit
+
+  destroy:
+    if: ${{ inputs.do_destroy }}
+    needs: ${{ inputs.do_apply && 'apply' || inputs.do_plan && 'plan' || inputs.do_init && 'init' || null }}
+    uses: ./.github/workflows/terraform-destroy.yml
+    with:
+      environment: prod
+      tfvars_file: environments/prod.tfvars
+      rgname: ritkargv
+      saname: ritkasav
+      scname: ritkascv
+      key: prod.tfstate
+    secrets: inherit
